@@ -1,0 +1,22 @@
+import { ArrowRight, BookOpen, CheckCircle2, Clock3, Sparkles, Target, TrendingUp } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { useApp } from '../context/AppContext'
+import { CourseIcon } from '../components/Icons'
+
+export default function Dashboard() {
+  const { t, user, allCourses, enrollments, progress } = useApp()
+  const enrolled = allCourses.filter(c=>enrollments.includes(c.id))
+  const totalCompleted = Object.values(progress).reduce((n,arr)=>n+arr.length,0)
+  const percentFor = c => { const total=c.modules.reduce((n,m)=>n+m.lessons.length,0); return total?Math.round(((progress[c.id]||[]).length/total)*100):0 }
+  return <div className="page-stack">
+    <section className="dashboard-welcome"><div><span className="section-kicker">YOUR LEARNING SPACE</span><h1>{t('welcome')}, {user?.name?.split(' ')[0] || 'Learner'} <span className="wave"></span></h1><p>{t('keepGoing')}</p><div className="welcome-actions"><Link className="button button-white" to="/courses">{t('browse')} <ArrowRight size={17}/></Link></div></div><div className="welcome-art"><div className="art-orbit orbit-one"/><div className="art-orbit orbit-two"/><div className="art-center"><Sparkles size={40}/></div><span className="art-float float-one"><CheckCircle2/></span><span className="art-float float-two"><BookOpen/></span></div></section>
+    <div className="stats-grid"><article className="stat-card"><span className="stat-icon purple"><BookOpen/></span><div><small>{t('myLearning')}</small><strong>{enrolled.length}</strong><span>Courses started</span></div></article><article className="stat-card"><span className="stat-icon green"><CheckCircle2/></span><div><small>Lessons completed</small><strong>{totalCompleted}</strong><span>Keep your streak going</span></div></article><article className="stat-card"><span className="stat-icon orange"><TrendingUp/></span><div><small>{t('progress')}</small><strong>{enrolled.length ? Math.round(enrolled.reduce((n,c)=>n+percentFor(c),0)/enrolled.length):0}%</strong><span>Average course progress</span></div></article><article className="stat-card"><span className="stat-icon blue"><Target/></span><div><small>Learning time</small><strong>{totalCompleted*20}m</strong><span>Demo estimate</span></div></article></div>
+    <section className="content-section"><div className="section-heading"><div><span className="section-kicker">PICK UP WHERE YOU LEFT OFF</span><h2>{t('continueLearning')}</h2></div><Link to="/my-learning" className="text-link">View all <ArrowRight size={16}/></Link></div>
+      {enrolled.length ? <div className="course-grid">{enrolled.map(c=><CourseProgressCard key={c.id} course={c} progress={percentFor(c)} t={t}/>)}</div> : <div className="empty-state"><span className="empty-icon"><BookOpen size={26}/></span><h3>Your learning journey starts here</h3><p>Choose a free course and start building a new skill, one lesson at a time.</p><Link className="button button-primary" to="/courses">{t('allCourses')} <ArrowRight size={17}/></Link></div>}
+    </section>
+    <section className="content-section"><div className="section-heading"><div><span className="section-kicker">CURATED FOR YOUR GROWTH</span><h2>Explore popular courses</h2></div><Link to="/courses" className="text-link">All courses <ArrowRight size={16}/></Link></div><div className="course-grid">{allCourses.slice(0,3).map(c=><CourseProgressCard key={c.id} course={c} progress={percentFor(c)} t={t}/>)}</div></section>
+  </div>
+}
+function CourseProgressCard({course,progress,t}) {
+ return <article className="course-card"><div className={`course-art ${course.color}`}><span className="course-art-icon"><CourseIcon name={course.icon} size={28}/></span><span className="free-pill">{t('freeLabel')}</span></div><div className="course-card-body"><div className="course-meta"><span>{course.category}</span><span><Clock3 size={13}/>{course.duration}</span></div><h3>{course.title}</h3><p>{course.description}</p><div className="course-bottom"><span className="level-badge">{course.level}</span><span className="lesson-count">{course.lessons} lessons</span></div><div className="progress-label"><span>{t('progress')}</span><strong>{progress}%</strong></div><div className="progress-track"><span style={{width:`${progress}%`}}/></div><Link to={`/learn/${course.id}`} className="button button-secondary button-full">{progress?'Continue learning':t('enroll')} <ArrowRight size={16}/></Link></div></article>
+}

@@ -1,0 +1,29 @@
+import { useMemo, useState } from 'react'
+import { Search, SlidersHorizontal, ArrowRight, Clock3 } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useApp } from '../context/AppContext'
+import { CourseIcon } from '../components/Icons'
+
+export function Courses() {
+ const {t,allCourses,enrollments,enroll}=useApp()
+ const [query,setQuery]=useState(''); const [category,setCategory]=useState('All'); const [level,setLevel]=useState('All')
+ const categories=['All',...new Set(allCourses.map(c=>c.category))]
+ const filtered=useMemo(()=>allCourses.filter(c=>(c.title+' '+c.description+' '+c.skills.join(' ')).toLowerCase().includes(query.toLowerCase())&&(category==='All'||c.category===category)&&(level==='All'||c.level===level)),[allCourses,query,category,level])
+ const navigate=useNavigate()
+ const start=(c)=>{enroll(c.id);navigate(`/learn/${c.id}`)}
+ return <div className="page-stack"><div className="page-title-row"><div><span className="section-kicker">FIND YOUR NEXT SKILL</span><h1>{t('allCourses')}</h1><p>Free, structured courses designed to help you grow with confidence.</p></div><span className="catalog-count">{allCourses.length} free courses</span></div>
+ <div className="catalog-tools"><label className="search-field"><Search size={19}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={t('search')}/></label><label className="filter-field"><SlidersHorizontal size={16}/><select value={category} onChange={e=>setCategory(e.target.value)}>{categories.map(c=><option key={c} value={c}>{c==='All'?t('allCategories'):c}</option>)}</select></label><label className="filter-field"><select value={level} onChange={e=>setLevel(e.target.value)}><option value="All">{t('allLevels')}</option>{['Beginner','Intermediate','Advanced'].map(l=><option key={l}>{l}</option>)}</select></label></div>
+ {filtered.length ? <div className="course-grid">{filtered.map(c=><article className="course-card" key={c.id}><div className={`course-art ${c.color}`}><span className="course-art-icon"><CourseIcon name={c.icon} size={28}/></span><span className="free-pill">{t('freeLabel')}</span></div><div className="course-card-body"><div className="course-meta"><span>{c.category}</span><span><Clock3 size={13}/>{c.duration}</span></div><h3>{c.title}</h3><p>{c.description}</p><div className="skill-tags">{c.skills.slice(0,3).map(s=><span key={s}>{s}</span>)}</div><div className="course-bottom"><span className="level-badge">{c.level}</span><span className="lesson-count">{c.lessons} lessons</span></div><button onClick={()=>start(c)} className="button button-primary button-full">{enrollments.includes(c.id)?'Continue learning':t('enroll')} <ArrowRight size={16}/></button></div></article>)}</div> : <div className="empty-state"><h3>No courses found</h3><p>Try another search term or clear your filters.</p><button className="button button-secondary" onClick={()=>{setQuery('');setCategory('All');setLevel('All')}}>Clear filters</button></div>}
+ </div>
+}
+export function MyLearning() {
+ const {t,allCourses,enrollments,progress}=useApp()
+ const list=allCourses.filter(c=>enrollments.includes(c.id))
+ return <div className="page-stack"><div className="page-title-row"><div><span className="section-kicker">YOUR PERSONAL LEARNING PATH</span><h1>{t('myLearning')}</h1><p>All your enrolled courses and progress in one place.</p></div></div>{list.length?<div className="course-grid">{list.map(c=>{const total=c.modules.reduce((n,m)=>n+m.lessons.length,0);const pct=Math.round(((progress[c.id]||[]).length/total)*100);return <article className="course-card" key={c.id}><div className={`course-art ${c.color}`}><span className="course-art-icon"><CourseIcon name={c.icon}/></span></div><div className="course-card-body"><h3>{c.title}</h3><p>{c.description}</p><div className="progress-label"><span>{t('progress')}</span><strong>{pct}%</strong></div><div className="progress-track"><span style={{width:`${pct}%`}}/></div><Link to={`/learn/${c.id}`} className="button button-primary button-full">Continue learning <ArrowRight size={16}/></Link></div></article>})}</div>:<div className="empty-state"><h3>You have not enrolled in a course yet</h3><p>Choose a free course to begin.</p><Link className="button button-primary" to="/courses">Browse courses</Link></div>}</div>
+}
+export function Certificates() {
+ const {t,allCourses,enrollments,progress,quizPasses,user}=useApp()
+ const earned=allCourses.filter(c=>{const total=c.modules.reduce((n,m)=>n+m.lessons.length,0);return enrollments.includes(c.id)&&(progress[c.id]||[]).length>=total&&quizPasses[`${c.id}-final`]} )
+ return <div className="page-stack"><div className="page-title-row"><div><span className="section-kicker">YOUR ACHIEVEMENTS</span><h1>{t('myCertificates')}</h1><p>Certificates become eligible after required learning and a passed final exam.</p></div></div>{earned.length?<div className="certificate-grid">{earned.map(c=><div className="certificate-card" key={c.id}><div className="certificate-border"><span className="certificate-logo">✦ SKILLBRIDGE ACADEMY</span><h2>Certificate of Completion</h2><p>This demo certificate recognizes that</p><h3>{user?.name}</h3><p>has completed the learning requirements for</p><h2>{c.title}</h2><span className="demo-stamp">DEMO CERTIFICATE</span><small>{new Date().toLocaleDateString()}</small></div><button className="button button-secondary button-full" onClick={()=>window.print()}>Print / Save as PDF</button></div>)}</div>:<div className="empty-state"><span className="empty-icon"><CheckCircleIcon/></span><h3>Your achievements will appear here</h3><p>Finish a course, complete all required lessons, and pass the final examination.</p><Link to="/courses" className="button button-primary">Explore courses</Link></div>}</div>
+}
+function CheckCircleIcon(){return <span>✓</span>}
